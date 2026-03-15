@@ -1,13 +1,12 @@
-# KomoSwitch
+# GlazeWM Switch
 
+![](assets/demo.png)
 A native Windows workspace switcher widget for [GlazeWM](https://github.com/glzr-io/glazewm) that integrates directly into your taskbar.
-
 A lightweight alternative (~2MB RAM) that shows all workspaces and lets you click to switch.
 
 ## Showcase
 
-![KomoSwitch on Windows 11 dark mode](.github/image-1.png)
-![KomoSwitch on Windows 11 light mode](.github/image-2.png)
+![Demo](assets/demo.gif)
 
 ## Features
 
@@ -55,11 +54,11 @@ style = "windows"
 
 ### Config Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `position.x` | X offset from left edge (-1 for center) | 64 |
-| `position.y` | Y offset from top edge | 0 |
-| `style` | Visual style: "windows" or "classic" | "windows" |
+| Option       | Description                             | Default   |
+| ------------ | --------------------------------------- | --------- |
+| `position.x` | X offset from left edge (-1 for center) | 64        |
+| `position.y` | Y offset from top edge                  | 0         |
+| `style`      | Visual style: "windows" or "classic"    | "windows" |
 
 ### Style Examples
 
