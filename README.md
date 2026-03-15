@@ -86,28 +86,6 @@ cargo build --release
 cargo run
 ```
 
-## Architecture
-
-- **main.rs**: Entry point, initializes logging
-- **komo.rs**: GlazeWM WebSocket client for state and commands
-- **window/mod.rs**: Window creation, message handling, rendering
-- **window/settings.rs**: Windows theme color detection
-- **config.rs**: Configuration file loading
-
-## Logging
-
-In debug builds, the application provides detailed logging:
-
-```bash
-# Enable verbose logging
-set RUST_LOG=debug
-cargo run
-```
-
-## License
-
-MIT License - see the LICENSE file for details.
-
 ## Acknowledgments
 
 - [GlazeWM](https://github.com/glzr-io/glazewm) - The tiling window manager this widget is designed for
