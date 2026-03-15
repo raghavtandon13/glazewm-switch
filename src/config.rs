@@ -43,7 +43,9 @@ impl Default for Config {
 
 impl Config {
     pub fn load() -> Self {
-        let config_path = std::path::PathBuf::from("komoswitch.toml");
+        let config_path = dirs::config_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join("glazewm-switch.toml");
 
         if config_path.exists() {
             match std::fs::read_to_string(&config_path) {

@@ -1,7 +1,0 @@
-[position]
-# X offset from left edge (or center if x = -1)
-x = 64
-# Y offset from top edge
-y = 0
-# Visual style: "windows" (square bg) or "classic" (bars below numbers)
-style = "classic"

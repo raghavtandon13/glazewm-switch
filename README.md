@@ -32,15 +32,16 @@ A lightweight alternative (~2MB RAM) that shows all workspaces and lets you clic
 
 ```bash
 git clone https://github.com/raghav/glazewm-switch.git
-cd komoswitch
+cd glazewm-switch
 cargo build --release
 ```
 
-The executable will be at `./target/release/komoswitch.exe`
+The executable will be at `./target/release/glazewm-switch.exe`
 
 ## Configuration
 
-Create a `komoswitch.toml` file next to the executable:
+Create a `glazewm-switch.toml` file:
+Config Path: `C:\Users\<user>\AppData\Roaming\glazewm-switch.toml`
 
 ```toml
 [position]
@@ -48,7 +49,6 @@ Create a `komoswitch.toml` file next to the executable:
 x = 64
 # Y offset from top edge
 y = 0
-
 # Visual style: "windows" (square bg) or "classic" (bars below)
 style = "windows"
 ```

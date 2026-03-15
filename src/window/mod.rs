@@ -1,4 +1,4 @@
-use crate::{config::Config, komo::GlazeState, window::settings::Settings};
+use crate::{config::Config, glazewm::GlazeState, window::settings::Settings};
 use winsafe::{prelude::*, *};
 
 mod settings;
@@ -21,7 +21,7 @@ impl Window {
         Ok(Self {
             hwnd: HWND::NULL,
             state: loop {
-                match crate::komo::read_state() {
+                match crate::glazewm::read_state() {
                     Ok(new_state) => break new_state,
                     Err(e) => {
                         log::error!("Failed to read state, retrying: {}", e);
@@ -221,7 +221,7 @@ impl Window {
 
             if p.coords.x >= focused_rect.left && p.coords.x <= focused_rect.right {
                 log::info!("Switching to workspace {}: {}", idx, workspace_name);
-                crate::komo::focus_workspace(idx)?;
+                crate::glazewm::focus_workspace(idx)?;
                 break;
             }
 
@@ -243,7 +243,7 @@ impl Window {
         Ok(0)
     }
 
-    fn workspaces(&self) -> anyhow::Result<&Vec<crate::komo::GlazeWorkspace>> {
+    fn workspaces(&self) -> anyhow::Result<&Vec<crate::glazewm::GlazeWorkspace>> {
         Ok(&self.state.workspaces)
     }
 
@@ -285,7 +285,7 @@ impl Window {
         paint: bool,
         rect: RECT,
         border_radius: SIZE,
-        workspaces: &Vec<crate::komo::GlazeWorkspace>,
+        workspaces: &Vec<crate::glazewm::GlazeWorkspace>,
         focused_idx: Option<usize>,
     ) -> anyhow::Result<i32> {
         let mut left = 0;
@@ -341,7 +341,7 @@ impl Window {
         paint: bool,
         rect: RECT,
         border_radius: SIZE,
-        workspaces: &Vec<crate::komo::GlazeWorkspace>,
+        workspaces: &Vec<crate::glazewm::GlazeWorkspace>,
         focused_idx: Option<usize>,
     ) -> anyhow::Result<i32> {
         let mut left = 0;
@@ -420,7 +420,7 @@ impl Window {
 
     fn handle_update_state(&mut self) -> anyhow::Result<isize> {
         self.state = loop {
-            match crate::komo::read_state() {
+            match crate::glazewm::read_state() {
                 Ok(new_state) => break new_state,
                 Err(e) => {
                     log::error!("Failed to read state on update: {}", e);
@@ -468,7 +468,7 @@ impl Window {
 
         let hinstance = HINSTANCE::GetModuleHandle(None)?;
 
-        let atom = self.register_class(&hinstance, "komoswitch")?;
+        let atom = self.register_class(&hinstance, "glazewm-switch")?;
 
         let taskbar_atom = AtomStr::from_str("Shell_TrayWnd");
         let taskbar = HWND::FindWindow(Some(taskbar_atom), None)?

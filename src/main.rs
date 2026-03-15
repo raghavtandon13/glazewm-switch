@@ -5,10 +5,10 @@
   ),
   windows_subsystem = "windows"
 )]
-use crate::{config::Config, komo::start_listen_for_workspaces, window::Window};
+use crate::{config::Config, glazewm::start_listen_for_workspaces, window::Window};
 
 mod config;
-mod komo;
+mod glazewm;
 mod window;
 
 fn begin_execution() -> anyhow::Result<()> {
