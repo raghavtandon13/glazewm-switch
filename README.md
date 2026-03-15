@@ -1,6 +1,7 @@
 # GlazeWM Switch
 
 ![](assets/demo.png)
+
 A native Windows workspace switcher widget for [GlazeWM](https://github.com/glzr-io/glazewm) that integrates directly into your taskbar.
 A lightweight alternative (~2MB RAM) that shows all workspaces and lets you click to switch.
 
