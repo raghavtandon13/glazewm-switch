@@ -108,6 +108,13 @@ impl Window {
     }
 
     extern "system" fn wnd_proc(hwnd: HWND, msg: co::WM, wparam: usize, lparam: isize) -> isize {
+        match msg {
+            co::WM::LBUTTONDOWN => log::info!("RAW wnd_proc: WM_LBUTTONDOWN"),
+            co::WM::RBUTTONDOWN => log::info!("RAW wnd_proc: WM_RBUTTONDOWN"),
+            co::WM::NCHITTEST => {} // too noisy, skip
+            _ => log::info!("RAW wnd_proc: msg={:#06x}", msg.raw()),
+        }
+
         let wm_any = msg::WndMsg::new(msg, wparam, lparam);
 
         let ptr_self = match msg {
@@ -152,12 +159,13 @@ impl Window {
             co::WM::CREATE => self.handle_create(),
             co::WM::PAINT => self.handle_paint(),
             co::WM::LBUTTONDOWN => {
-                self.handle_lbuttondown(unsafe { msg::wm::RButtonDown::from_generic_wm(p) })
+                self.handle_lbuttondown(unsafe { msg::wm::LButtonDown::from_generic_wm(p) })
             }
             co::WM::RBUTTONDOWN => {
                 self.handle_rbuttondown(unsafe { msg::wm::RButtonDown::from_generic_wm(p) })
             }
             co::WM::COMMAND => self.handle_command(unsafe { msg::wm::Command::from_generic_wm(p) }),
+            co::WM::NCHITTEST => return self.handle_nchittest(),
             UpdateState::ID => self.handle_update_state(),
             SETTINGCHANGED => self.handle_setting_changed(),
             co::WM::DESTROY => {
@@ -166,6 +174,10 @@ impl Window {
             }
             _ => Ok(unsafe { self.hwnd.DefWindowProc(p) }),
         }
+    }
+
+    fn handle_nchittest(&self) -> anyhow::Result<isize> {
+        Ok(1isize)
     }
 
     fn handle_command(&mut self, mut p: msg::wm::Command) -> anyhow::Result<isize> {
@@ -195,13 +207,26 @@ impl Window {
         Ok(0)
     }
 
-    fn handle_lbuttondown(&mut self, p: msg::wm::RButtonDown) -> anyhow::Result<isize> {
-        log::info!("Handling WM_LBUTTONDOWN message");
+    fn handle_lbuttondown(&mut self, p: msg::wm::LButtonDown) -> anyhow::Result<isize> {
+        log::info!(
+            "Handling WM_LBUTTONDOWN at x={}, y={}",
+            p.coords.x,
+            p.coords.y
+        );
+
         let hdc = self.hwnd.GetDC()?;
+        let _old_font = hdc.SelectObject(&self.settings.font)?;
+
         let rect = self.hwnd.GetClientRect()?;
+        log::info!(
+            "Window rect: left={}, right={}, top={}, bottom={}",
+            rect.left,
+            rect.right,
+            rect.top,
+            rect.bottom
+        );
 
         let workspaces = self.workspaces()?;
-        let focused_idx = workspaces.iter().position(|w| w.has_focus);
 
         let mut left = 0;
         for (idx, workspace) in workspaces.iter().enumerate() {
@@ -209,35 +234,55 @@ impl Window {
                 .display_name
                 .clone()
                 .unwrap_or_else(|| workspace.name.clone().unwrap_or((idx + 1).to_string()));
+
             let sz = hdc.GetTextExtentPoint32(&workspace_name)?;
 
-            let h_padding = if focused_idx == Some(idx) { 5 } else { 10 };
-            let focused_rect = RECT {
-                left: left + h_padding,
-                right: left + sz.cx + TEXT_PADDING * 2 - h_padding,
-                top: rect.bottom - 20,
-                bottom: rect.bottom - 10,
-            };
+            let box_left = left + 4;
+            let box_right = left + sz.cx + TEXT_PADDING * 2 - 4;
 
-            if p.coords.x >= focused_rect.left && p.coords.x <= focused_rect.right {
-                log::info!("Switching to workspace {}: {}", idx, workspace_name);
-                crate::glazewm::focus_workspace(idx)?;
-                break;
+            log::info!(
+                "Workspace {} '{}': box_left={}, box_right={}, click_x={}",
+                idx,
+                workspace_name,
+                box_left,
+                box_right,
+                p.coords.x
+            );
+
+            if p.coords.x >= box_left
+                && p.coords.x <= box_right
+                && p.coords.y >= 0
+                && p.coords.y <= rect.bottom
+            {
+                log::info!(
+                    "Click on workspace {}: '{}'. Sending focus command...",
+                    idx,
+                    workspace_name
+                );
+                let target = workspace.name.clone().unwrap_or((idx + 1).to_string());
+                match crate::glazewm::focus_workspace(&target) {
+                    Ok(_) => log::info!("Focus command sent successfully"),
+                    Err(e) => log::error!("Failed to send focus command: {}", e),
+                }
+                return Ok(0);
             }
 
             left += sz.cx + TEXT_PADDING * 2;
         }
+
+        log::info!("WM_LBUTTONDOWN: no workspace hit at x={}", p.coords.x);
         Ok(0)
     }
 
     fn handle_setting_changed(&mut self) -> anyhow::Result<isize> {
         log::info!("Handling WM_SETTINGCHANGE message");
         self.settings = Settings::new()?;
-        self.hwnd.SetLayeredWindowAttributes(
-            self.settings.colors.get_color_key(),
-            0,
-            co::LWA::COLORKEY,
-        )?;
+
+        let color_key = self.settings.colors.get_color_key();
+        log::info!("Color key: #{:06X}", u32::from(color_key));
+
+        self.hwnd
+            .SetLayeredWindowAttributes(color_key, 0, co::LWA::COLORKEY)?;
         self.resize_to_fit()?;
         self.hwnd.InvalidateRect(None, true)?;
         Ok(0)
@@ -474,8 +519,16 @@ impl Window {
         let taskbar = HWND::FindWindow(Some(taskbar_atom), None)?
             .ok_or(anyhow::anyhow!("Taskbar not found"))?;
 
-        let rect = taskbar.GetClientRect()?;
+        let taskbar_rect = taskbar.GetWindowRect()?;
+        log::info!(
+            "Taskbar screen rect: left={}, top={}, right={}, bottom={}",
+            taskbar_rect.left,
+            taskbar_rect.top,
+            taskbar_rect.right,
+            taskbar_rect.bottom
+        );
 
+        let taskbar_height = taskbar_rect.bottom - taskbar_rect.top;
         let window_width = self.get_window_width()?;
 
         let x_pos = if self.config.position.x < 0 {
@@ -497,18 +550,18 @@ impl Window {
             },
             SIZE {
                 cx: window_width,
-                cy: rect.bottom - rect.top,
+                cy: taskbar_height,
             },
             &hinstance,
         )?;
 
         self.hwnd.SetParent(&taskbar)?;
 
-        self.hwnd.SetLayeredWindowAttributes(
-            self.settings.colors.get_color_key(),
-            0,
-            co::LWA::COLORKEY,
-        )?;
+        let color_key = self.settings.colors.get_color_key();
+        log::info!("Initial color key: #{:06X}", u32::from(color_key));
+
+        self.hwnd
+            .SetLayeredWindowAttributes(color_key, 0, co::LWA::COLORKEY)?;
 
         Ok(())
     }

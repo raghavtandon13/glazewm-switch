@@ -68,30 +68,30 @@ async fn query_workspaces() -> anyhow::Result<GlazeState> {
     anyhow::bail!("No response from GlazeWM")
 }
 
-pub fn focus_workspace(workspace_idx: usize) -> anyhow::Result<()> {
+pub fn focus_workspace(workspace_name: &str) -> anyhow::Result<()> {
+    log::info!("focus_workspace called with name={}", workspace_name);
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let (mut ws_stream, _) = connect_async(format!("ws://localhost:{}", GLAZEWM_PORT))
             .await
             .map_err(|e| anyhow::anyhow!("Failed to connect to GlazeWM: {}", e))?;
 
-        let command = format!("focus --workspace {}", workspace_idx + 1);
+        // use the actual workspace name, not idx+1
+        let command = format!("command focus --workspace {}", workspace_name);
+        log::info!("Sending GlazeWM command: {}", command);
         ws_stream.send(Message::Text(command.into())).await?;
 
         while let Some(msg) = ws_stream.next().await {
             let msg = msg.map_err(|e| anyhow::anyhow!("WebSocket error: {}", e))?;
-            
             if let Message::Text(text) = msg {
                 let response: GlazeResponse = serde_json::from_str(&text)
                     .map_err(|e| anyhow::anyhow!("Failed to parse response: {}", e))?;
-
                 if let Some(error) = response.error {
                     anyhow::bail!("GlazeWM error: {}", error);
                 }
                 return Ok(());
             }
         }
-
         Ok(())
     })
 }

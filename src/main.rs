@@ -1,10 +1,8 @@
 #![cfg_attr(
-  all(
-    target_os = "windows",
-    not(debug_assertions),
-  ),
-  windows_subsystem = "windows"
+    all(target_os = "windows", not(debug_assertions),),
+    windows_subsystem = "windows"
 )]
+
 use crate::{config::Config, glazewm::start_listen_for_workspaces, window::Window};
 
 mod config;
